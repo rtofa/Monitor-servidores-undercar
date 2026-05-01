@@ -3,3 +3,7 @@ pip install uvicorn
 pip install playwright
 pip install python-dotenv
 pip install requests
+pip install apscheduler
+pip install pydantic-settings
+pip install pytest
+pip install pytest-playwright
