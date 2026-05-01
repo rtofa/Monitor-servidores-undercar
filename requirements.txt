@@ -1,0 +1,5 @@
+pip install fastapi
+pip install uvicorn
+pip install playwright
+pip install python-dotenv
+pip install requests
