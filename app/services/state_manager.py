@@ -1,52 +1,48 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.db.models import ServerState
+from app.db.models import ServerState, ServerEvent # <-- Importe o ServerEvent aqui
 
-def analisar_estado_e_alertar(db: Session, servidores_com_erro_atual: list) -> tuple[list, list]:
-    """
-    Analisa a lista atual de erros contra o banco de dados.
-    Retorna: (novas_quedas, servidores_recuperados)
-    """
+def atualizar_banco_e_alertar(db: Session, dados_api: dict) -> tuple[list, list]:
     agora = datetime.utcnow()
-    
-    # Busca todos os servidores cadastrados
     servidores_db = db.query(ServerState).all()
     mapa_db = {s.server_name: s for s in servidores_db}
 
     novas_quedas = []
     recuperados = []
 
-    # 1. Verifica quem caiu
-    for nome in servidores_com_erro_atual:
+    for nome, metricas in dados_api.items():
+        status_atual = metricas["status"]
+        
         if nome not in mapa_db:
-            # Servidor novo que já foi registrado com falha
             novo_servidor = ServerState(
-                server_name=nome, 
-                status="OFFLINE", 
-                last_checked=agora, 
-                status_changed_at=agora
+                server_name=nome, status=status_atual,
+                cpu_usage=metricas["cpu_usage"], ram_usage=metricas["ram_usage"],
+                last_checked=agora, status_changed_at=agora
             )
             db.add(novo_servidor)
-            novas_quedas.append(nome)
+            if status_atual == "OFFLINE":
+                novas_quedas.append(nome)
+                # Registra o log da primeira queda
+                db.add(ServerEvent(server_name=nome, event_type="OFFLINE", message=f"{nome} identificado como OFFLINE.", timestamp=agora))
         else:
             servidor = mapa_db[nome]
             servidor.last_checked = agora
-            if servidor.status == "ONLINE":
-                # Mudança de estado: Estava Online, agora está Offline
+            servidor.cpu_usage = metricas["cpu_usage"]
+            servidor.ram_usage = metricas["ram_usage"]
+            
+            if servidor.status == "ONLINE" and status_atual == "OFFLINE":
                 servidor.status = "OFFLINE"
                 servidor.status_changed_at = agora
                 novas_quedas.append(nome)
-
-    # 2. Verifica quem voltou (Estava OFFLINE, mas não está mais na lista de erros)
-    for servidor in servidores_db:
-        if servidor.status == "OFFLINE" and servidor.server_name not in servidores_com_erro_atual:
-            servidor.status = "ONLINE"
-            servidor.status_changed_at = agora
-            servidor.last_checked = agora
-            recuperados.append(servidor.server_name)
-        elif servidor.status == "ONLINE" and servidor.server_name not in servidores_com_erro_atual:
-            # Continua operando normalmente, apenas atualiza o timestamp
-            servidor.last_checked = agora
+                # Grava o log da queda
+                db.add(ServerEvent(server_name=nome, event_type="OFFLINE", message=f"Queda detectada no servidor {nome}.", timestamp=agora))
+                
+            elif servidor.status == "OFFLINE" and status_atual == "ONLINE":
+                servidor.status = "ONLINE"
+                servidor.status_changed_at = agora
+                recuperados.append(nome)
+                # Grava o log da recuperação
+                db.add(ServerEvent(server_name=nome, event_type="ONLINE", message=f"Servidor {nome} voltou a operar.", timestamp=agora))
 
     db.commit()
     return novas_quedas, recuperados

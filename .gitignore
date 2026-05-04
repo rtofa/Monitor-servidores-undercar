@@ -27,3 +27,5 @@ alembic/.pytest_cache/
 # Arquivos de Sistema Operacional
 .DS_Store
 Thumbs.db
+
+criar_admin.py

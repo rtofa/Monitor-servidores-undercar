@@ -1,55 +1,54 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.services.scraper import verificar_servidores
+
+# Importando a nova arquitetura
+from app.services.grafana_api import coletar_metricas_api
+from app.services.state_manager import atualizar_banco_e_alertar
+from app.services.scraper import tirar_print_para_whatsapp
 from app.services.whatsapp import enviar_relatorio_whatsapp
 from app.services.ligacao import alertar_por_ligacao
-from app.services.state_manager import analisar_estado_e_alertar
 
-router = APIRouter(prefix="/monitor", tags=["Monitoramento"])
+router = APIRouter(tags=["Monitoramento Manual"])
 
-@router.post("/trigger-check")
-def disparar_verificacao_manual(db: Session = Depends(get_db)):
-    caminho_imagem, tem_erro, servidores_com_erro = verificar_servidores()
+@router.post("/verificar-agora")
+def disparar_varredura_manual(db: Session = Depends(get_db)):
+    """
+    Rota para forçar a varredura das métricas imediatamente (botão manual no painel).
+    """
+    # 1. Puxa os dados via API do Zabbix (Super Rápido)
+    dados_da_api = coletar_metricas_api()
+    
+    if not dados_da_api:
+        return {"status": "erro", "mensagem": "Falha ao conectar com a API do Grafana/Zabbix."}
 
-    if not caminho_imagem:
-        raise HTTPException(status_code=500, detail="Falha ao tentar gerar o print do Grafana.")
-
-    novas_quedas, recuperados = analisar_estado_e_alertar(db, servidores_com_erro)
-
+    # 2. Grava no banco de dados e descobre quem caiu/voltou
+    novas_quedas, recuperados = atualizar_banco_e_alertar(db, dados_da_api)
+    
+    # 3. Lógica inteligente de alertas
     if novas_quedas:
-        sucesso_envio = enviar_relatorio_whatsapp(caminho_imagem, True, novas_quedas)
-        if not sucesso_envio:
-            raise HTTPException(status_code=500, detail="Print gerado, mas falha no envio do WhatsApp.")
-
-        sucesso_ligacao = alertar_por_ligacao(novas_quedas)
-        if not sucesso_ligacao:
-            raise HTTPException(status_code=500, detail="WhatsApp enviado, mas falha na ligação.")
-
+        print("Queda manual detectada! Tirando print...")
+        caminho_imagem = tirar_print_para_whatsapp()
+        
+        if caminho_imagem:
+            enviar_relatorio_whatsapp(caminho_imagem, True, novas_quedas)
+            
+        alertar_por_ligacao(novas_quedas)
+        
         return {
-            "status": "success",
-            "message": f"Instabilidade detectada. Alertas enviados para: {novas_quedas}",
-            "has_error": True,
+            "status": "alerta", 
+            "mensagem": "Varredura concluída. Quedas detectadas e alertas disparados!",
             "novas_quedas": novas_quedas
         }
-
+        
     elif recuperados:
         return {
-            "status": "success",
-            "message": f"Servidores recuperados: {recuperados}",
-            "has_error": False,
+            "status": "sucesso", 
+            "mensagem": f"Varredura concluída. Servidores recuperados: {recuperados}",
             "recuperados": recuperados
         }
-
-    if tem_erro:
-        return {
-            "status": "success",
-            "message": "Instabilidade continua. Nenhum novo alerta enviado (Regra Anti-Spam).",
-            "has_error": True
-        }
-
+        
     return {
-        "status": "success",
-        "message": "Nenhuma instabilidade detectada. Todos os servidores operacionais.",
-        "has_error": False
+        "status": "sucesso", 
+        "mensagem": "Varredura concluída. Todos os servidores operacionais e banco de dados atualizado com as novas métricas de CPU e RAM."
     }

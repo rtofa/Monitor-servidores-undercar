@@ -3,79 +3,74 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Importando os novos roteadores modulares
 from app.api import monitor, servers, auth
-
-# Importando serviços e banco de dados para a rotina automática em background
 from app.db.database import SessionLocal
-from app.services.scraper import verificar_servidores
+
+# Importações da nova arquitetura
+from app.services.grafana_api import coletar_metricas_api
+from app.services.state_manager import atualizar_banco_e_alertar
+from app.services.scraper import tirar_print_para_whatsapp
 from app.services.whatsapp import enviar_relatorio_whatsapp
 from app.services.ligacao import alertar_por_ligacao
-from app.services.state_manager import analisar_estado_e_alertar
 
 def rotina_diaria_automatica():
-    """Função invocada pelo agendador com inteligência Anti-Spam e banco de dados."""
-    print("Iniciando varredura agendada...")
-    
-    # Abrindo sessão do banco manualmente, pois estamos em uma thread de background
+    print("Iniciando varredura via API do Zabbix/Grafana...")
     db = SessionLocal()
+    
     try:
-        caminho_imagem, tem_erro, servidores_com_erro = verificar_servidores()
+        # 1. Busca os dados super rápidos pela API
+        dados_da_api = coletar_metricas_api()
         
-        if caminho_imagem:
-            # Compara com o banco para garantir que é uma queda nova
-            novas_quedas, recuperados = analisar_estado_e_alertar(db, servidores_com_erro)
+        if not dados_da_api:
+            print("Falha ao comunicar com a API do Grafana. Abortando ciclo.")
+            return
+
+        # 2. Atualiza o PostgreSQL e verifica mudanças de estado
+        novas_quedas, recuperados = atualizar_banco_e_alertar(db, dados_da_api)
+        
+        # 3. Lógica de Alertas e Print
+        if novas_quedas:
+            print(f"Queda detectada! Abrindo navegador em background para tirar foto...")
+            caminho_imagem = tirar_print_para_whatsapp()
             
-            if novas_quedas:
-                print(f"Instabilidade detectada! Disparando alertas para: {novas_quedas}")
+            if caminho_imagem:
                 enviar_relatorio_whatsapp(caminho_imagem, True, novas_quedas)
-                alertar_por_ligacao(novas_quedas)
-            elif recuperados:
-                print(f"Servidores recuperados: {recuperados}")
-            elif tem_erro:
-                print("Servidores continuam fora. Nenhum alerta novo disparado (Anti-Spam).")
-            else:
-                print("Varredura concluída. Todos os servidores operacionais e no verde.")
+            
+            alertar_por_ligacao(novas_quedas)
+            
+        elif recuperados:
+            print(f"Servidores recuperados: {recuperados}. Banco atualizado.")
+        else:
+            print("Métricas atualizadas no banco. Nenhum novo incidente (Regra Anti-Spam respeitada).")
+            
     except Exception as e:
-        print(f"Erro interno na rotina agendada: {e}")
+        print(f"Erro interno na rotina: {e}")
     finally:
-        db.close()  # Muito importante para não vazar memória no servidor
+        db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup inicial: Liga o agendador em background
     scheduler = BackgroundScheduler()
-    
-    # Mantendo a sua rotina programada para as 05:00
-    scheduler.add_job(rotina_diaria_automatica, 'cron', hour=5, minute=0)
-    
-    # Se quiser transformar a automação em 24/7 de verdade testando a cada 5 minutos:
-    # scheduler.add_job(rotina_diaria_automatica, 'interval', minutes=5)
-    
+    # Para testar a API, você pode colocar minutes=1. Em prod, use minutes=5 ou o que preferir.
+    scheduler.add_job(rotina_diaria_automatica, 'interval', minutes=5)
     scheduler.start()
-    
-    yield # O FastAPI roda aqui enquanto o servidor estiver online
-    
-    # Teardown: Desliga o agendador ao encerrar o servidor
+    yield
     scheduler.shutdown()
 
-# Instância baseada na identidade corporativa
-app = FastAPI(title="Monitoramento Fluxo Alpha", lifespan=lifespan)
+app = FastAPI(title="Monitoramento Servidores Undercar", lifespan=lifespan)
 
-# Configuração de CORS (Libera o acesso para o Frontend React consumir os dados)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Em produção, substitua "*" pela URL do seu domínio React
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Adicionando os agrupamentos de rotas na API
 app.include_router(monitor.router, prefix="/api/v1")
 app.include_router(servers.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 
 @app.get("/")
 def health_check():
-    return {"status": "online", "service": "API de Monitoramento Ativa"}
+    return {"status": "online"}
