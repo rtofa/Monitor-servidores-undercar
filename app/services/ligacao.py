@@ -17,7 +17,7 @@ def alertar_por_ligacao(servidores_com_erro: list) -> bool:
     url = f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Calls.json"
     
     payload = {
-        "To": "+5514981212423", # Número do marcelo para a ligação do twilio 
+        "To": "REDACTED_PHONE", # Número do marcelo para a ligação do twilio 
         "From": settings.twilio_phone_number, # O número virtual que a Twilio vai emprestar
         "Twiml": twiml
     }

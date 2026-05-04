@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     chatwoot_api_url: str
     chatwoot_token: str
 
-    model_config = SettingsConfigDict(env_file=".env")
+    # Variáveis da Twilio (ligação de alerta)
+    twilio_account_sid: str
+    twilio_auth_token: str
+    twilio_phone_number: str
+
+    database_url: str
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

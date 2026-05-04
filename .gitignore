@@ -1,1 +1,29 @@
+# Ambientes Virtuais (Essencial para não subir o Python inteiro pro Git)
+venv/
+env/
+.env/
+
+# Variáveis de Ambiente (NUNCA suba suas senhas e tokens da Twilio/Chatwoot)
 .env
+
+# Arquivos Temporários da Automação
+temp/
+*.png
+*.jpg
+
+# Arquivos compilados do Python e Caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+alembic/.pytest_cache/
+
+# Configurações de IDEs (VS Code, PyCharm)
+.vscode/
+.idea/
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
