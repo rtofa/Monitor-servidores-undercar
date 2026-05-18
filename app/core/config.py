@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     grafana_url_login: str
     grafana_url_dashboard: str
     grafana_url_api: str
+    grafana_url_query: str
     grafana_user: str
     grafana_password: str
 
@@ -15,8 +16,13 @@ class Settings(BaseSettings):
     twilio_account_sid: str
     twilio_auth_token: str
     twilio_phone_number: str
+    twilio_to_phone_number: str
 
     database_url: str
+
+    admin_name: str
+    admin_email: str
+    admin_password: str
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

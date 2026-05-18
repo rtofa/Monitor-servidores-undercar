@@ -12,6 +12,10 @@ from alembic import context
 # access to the values within the .ini file in use.
 config = context.config
 
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 target_metadata = Base.metadata

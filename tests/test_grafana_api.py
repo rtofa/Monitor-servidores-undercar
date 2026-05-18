@@ -2,11 +2,7 @@ import requests
 import json
 import datetime
 import os
-
-# --- PREENCHA COM SEUS DADOS ---
-USUARIO_GRAFANA = "REDACTED_EMAIL"
-SENHA_GRAFANA = "REDACTED_PASSWORD"
-# -------------------------------
+from app.core.config import settings
 
 def gerar_payload_dinamico(nome_servidor, nome_metrica):
     """Monta o JSON idêntico ao do navegador para evitar o Erro 400"""
@@ -63,10 +59,10 @@ def rodar_teste_api_dinamica():
         "X-Grafana-Org-Id": "15" # Passaporte para a sua organização
     })
     
-    login_url = "https://grafana.example.com/login"
-    query_url = "https://monitor.advant.com.br/api/ds/query"
+    login_url = settings.grafana_url_login
+    query_url = settings.grafana_url_query
     
-    credenciais = {"user": USUARIO_GRAFANA, "password": SENHA_GRAFANA}
+    credenciais = {"user": settings.grafana_user, "password": settings.grafana_password}
     
     print("1. Realizando login...")
     try:

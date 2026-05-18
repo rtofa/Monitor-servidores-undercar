@@ -1,8 +1,6 @@
 import requests
 import datetime
-
-USUARIO_GRAFANA = "REDACTED_EMAIL"
-SENHA_GRAFANA = "REDACTED_PASSWORD"
+from app.core.config import settings
 
 # Nossa Fonte da Verdade de Servidores Monitorados
 SERVIDORES_MONITORADOS = [
@@ -64,13 +62,16 @@ def coletar_metricas_api() -> dict:
     })
     
     try:
-        sessao.post("https://grafana.example.com/login", json={"user": USUARIO_GRAFANA, "password": SENHA_GRAFANA}).raise_for_status()
+        sessao.post(
+            settings.grafana_url_login,
+            json={"user": settings.grafana_user, "password": settings.grafana_password},
+        ).raise_for_status()
     except Exception as e:
         print(f"Erro de login na API: {e}")
         return {}
 
     dados_finais = {}
-    query_url = "https://monitor.advant.com.br/api/ds/query"
+    query_url = settings.grafana_url_query
 
     for servidor in SERVIDORES_MONITORADOS:
         dados_finais[servidor] = {"status": "ONLINE", "cpu_usage": None, "ram_usage": None}
