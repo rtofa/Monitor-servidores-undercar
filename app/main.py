@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime
 
 from app.api import monitor, servers, auth
 from app.db.database import SessionLocal
@@ -9,11 +10,18 @@ from app.db.database import SessionLocal
 # Importações da nova arquitetura
 from app.services.grafana_api import coletar_metricas_api
 from app.services.state_manager import atualizar_banco_e_alertar
-from app.services.scraper import tirar_print_para_whatsapp
-from app.services.whatsapp import enviar_relatorio_whatsapp
-from app.services.ligacao import alertar_por_ligacao
+from app.services.chatbee import enviar_alerta_chatbee
 
 def rotina_diaria_automatica():
+    agora = datetime.now()
+    if 7 <= agora.hour < 19:
+        print("Fora do horário de monitoramento (19:00 às 07:00). Pulando...")
+        return
+        
+    if (agora.hour == 23 and agora.minute >= 58) or (agora.hour == 0 and agora.minute <= 12):
+        print("Janela de reinício de servidores (23:58 às 00:12). Pulando...")
+        return
+
     print("Iniciando varredura via API do Zabbix/Grafana...")
     db = SessionLocal()
     
@@ -28,15 +36,10 @@ def rotina_diaria_automatica():
         # 2. Atualiza o PostgreSQL e verifica mudanças de estado
         novas_quedas, recuperados = atualizar_banco_e_alertar(db, dados_da_api)
         
-        # 3. Lógica de Alertas e Print
+        # 3. Lógica de Alertas via Chatbee (WhatsApp Oficial)
         if novas_quedas:
-            print(f"Queda detectada! Abrindo navegador em background para tirar foto...")
-            caminho_imagem = tirar_print_para_whatsapp()
-            
-            if caminho_imagem:
-                enviar_relatorio_whatsapp(caminho_imagem, True, novas_quedas)
-            
-            alertar_por_ligacao(novas_quedas)
+            print(f"Queda detectada! Enviando alerta via Chatbee...")
+            enviar_alerta_chatbee(novas_quedas)
             
         elif recuperados:
             print(f"Servidores recuperados: {recuperados}. Banco atualizado.")
@@ -73,4 +76,4 @@ app.include_router(auth.router, prefix="/api/v1")
 
 @app.get("/")
 def health_check():
-    return {"status": "online"}
+    return {"status": "online"}

@@ -74,6 +74,9 @@ def coletar_metricas_api() -> dict:
     query_url = settings.grafana_url_query
 
     for servidor in SERVIDORES_MONITORADOS:
+        if "PL-00" in servidor:
+            continue
+            
         dados_finais[servidor] = {"status": "ONLINE", "cpu_usage": None, "ram_usage": None}
         
         try:

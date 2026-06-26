@@ -8,15 +8,12 @@ class Settings(BaseSettings):
     grafana_user: str
     grafana_password: str
 
-    # Novas variáveis do Chatwoot
-    chatwoot_api_url: str
-    chatwoot_token: str
-
-    # Variáveis da Twilio (ligação de alerta)
-    twilio_account_sid: str
-    twilio_auth_token: str
-    twilio_phone_number: str
-    twilio_to_phone_number: str
+    # Variáveis do Chatbee (WhatsApp Oficial via Meta)
+    chatbee_api_url: str
+    chatbee_api_token: str
+    chatbee_user_id: str
+    chatbee_department_id: str
+    chatbee_channel_id: str
 
     database_url: str
 
@@ -26,4 +23,4 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-settings = Settings()
+settings = Settings()
