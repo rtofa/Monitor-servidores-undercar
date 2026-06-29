@@ -41,8 +41,6 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
                 }
             ],
             "template_data": {
-                "_id": "6a3d24b311d57efbfdef8674",
-                "id": "1543344257298869",
                 "name": "automacao_aviso_queda_servidor",
                 "components": [
                     {
@@ -62,13 +60,7 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
                 "category": "UTILITY",
                 "language": "pt_BR",
                 "status": "APPROVED",
-                "waba_id": "915901774873066",
-                "channel_uuid": "b093d349-4f15-4f1a-87e3-f778155c66a6",
-                "customer_uuid": "7012b48c-99d7-4536-a1f9-101a0347b203",
-                "disabled": False,
-                "__v": 0,
-                "quality_score": {"score": "UNKNOWN", "date": 1782476724},
-                "rejected_reason": "NONE"
+                "disabled": False
             },
             "rendered_message": {
                 "body": {
