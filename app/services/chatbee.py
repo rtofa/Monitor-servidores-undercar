@@ -102,6 +102,8 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
         response.raise_for_status()
         print("Alerta Chatbee enviado com sucesso!")
         return True
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         print(f"Erro ao enviar alerta pelo Chatbee: {e}")
+        if e.response is not None:
+            print(f"Detalhes do erro na API: {e.response.text}")
         return False
