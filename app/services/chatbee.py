@@ -81,7 +81,9 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
     headers = {
         "Content-Type": "application/json",
         "api_access_token": settings.chatbee_api_token,
-        "Authorization": f"Bearer {settings.chatbee_api_token}"
+        "Authorization": f"Bearer {settings.chatbee_api_token}",
+        "token": settings.chatbee_api_token,
+        "x-api-key": settings.chatbee_api_token
     }
 
     try:
