@@ -1,6 +1,9 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from app.core.config import settings
+
+# Fuso horário de Brasília (UTC-3)
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 
 def enviar_alerta_chatbee(servidores_offline: list) -> bool:
@@ -13,7 +16,8 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
         {{2}} = Horário do incidente (ex: "14:32")
     """
     nomes_falha = ", ".join(servidores_offline)
-    horario_incidente = datetime.now().strftime("%H:%M")
+    agora_brasilia = datetime.now(FUSO_BRASILIA)
+    horario_incidente = agora_brasilia.strftime("%H:%M")
 
     payload = {
         "contact_address": "5511993345150",
@@ -22,7 +26,7 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
         "department_id": settings.chatbee_department_id,
         "channel_type": "waba",
         "channel_id": settings.chatbee_channel_id,
-        "received_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "received_at": agora_brasilia.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "type": "template",
         "payload": {
             "type": "template",

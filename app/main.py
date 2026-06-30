@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from app.api import monitor, servers, auth
 from app.db.database import SessionLocal
@@ -12,8 +12,11 @@ from app.services.grafana_api import coletar_metricas_api
 from app.services.state_manager import atualizar_banco_e_alertar
 from app.services.chatbee import enviar_alerta_chatbee
 
+# Fuso horário de Brasília (UTC-3)
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
+
 def rotina_diaria_automatica():
-    agora = datetime.now()
+    agora = datetime.now(FUSO_BRASILIA)
     if 7 <= agora.hour < 19:
         print("Fora do horário de monitoramento (19:00 às 07:00). Pulando...")
         return
