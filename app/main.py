@@ -21,8 +21,8 @@ def rotina_diaria_automatica():
         print("Fora do horário de monitoramento (19:00 às 07:00). Pulando...")
         return
         
-    if (agora.hour == 23 and agora.minute >= 58) or (agora.hour == 0 and agora.minute <= 12):
-        print("Janela de reinício de servidores (23:58 às 00:12). Pulando...")
+    if (agora.hour == 23 and agora.minute >= 50) or (agora.hour == 0):
+        print("Janela de reinício de servidores (23:50 às 01:00). Pulando...")
         return
 
     print("Iniciando varredura via API do Zabbix/Grafana...")
