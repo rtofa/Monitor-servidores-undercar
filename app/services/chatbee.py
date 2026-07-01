@@ -21,7 +21,7 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
 
     contatos = [
         {"numero": "5511993345150", "nome": "Adriano"},
-        {"numero": "5514981212423", "nome": "Equipe"}
+        {"numero": "5514981212423", "nome": "Marcelo"}
     ]
 
     headers = {
