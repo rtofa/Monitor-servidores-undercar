@@ -1,4 +1,5 @@
 import requests
+import json
 from datetime import datetime, timezone, timedelta
 from app.core.config import settings
 
@@ -55,8 +56,8 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
                     {
                         "type": "BODY",
                         "parameters": [
-                            {"type": "text", "text": nomes_falha},
-                            {"type": "text", "text": horario_incidente}
+                            {"parameter_name": "1", "type": "text", "text": nomes_falha},
+                            {"parameter_name": "2", "type": "text", "text": horario_incidente}
                         ]
                     }
                 ],
@@ -64,11 +65,11 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
                     "body": {
                         "type": "text",
                         "text": (
-                            "🚨 *ALERTA DE INFRAESTRUTURA* 🚨\n\n"
-                            "O Cérebro de Monitoramento detectou falha de comunicação (OFFLINE) nos seguintes servidores:\n"
-                            "*{{1}}*\n\n"
-                            "Horário do incidente: {{2}}\n\n"
-                            "Por favor, acesse o painel de controle corporativo para auditar as métricas de CPU, RAM e restabelecer os serviços."
+                            f"🚨 *ALERTA DE INFRAESTRUTURA* 🚨\n\n"
+                            f"O Cérebro de Monitoramento detectou falha de comunicação (OFFLINE) nos seguintes servidores:\n"
+                            f"*{nomes_falha}*\n\n"
+                            f"Horário do incidente: {horario_incidente}\n\n"
+                            f"Por favor, acesse o painel de controle corporativo para auditar as métricas de CPU, RAM e restabelecer os serviços."
                         )
                     }
                 }
@@ -77,7 +78,11 @@ def enviar_alerta_chatbee(servidores_offline: list) -> bool:
         }
 
         try:
-            print(f"Enviando alerta Chatbee para {contato['numero']} — Servidores: {nomes_falha}")
+            print(f"Enviando alerta Chatbee para {contato['numero']}...")
+            print("=== PAYLOAD ENVIADO ===")
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            print("=======================")
+            
             response = requests.post(
                 settings.chatbee_api_url,
                 json=payload,
